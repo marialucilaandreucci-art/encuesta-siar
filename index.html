@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Encuesta SIAR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: itinerario lateral (pasos como paradas de una ruta) + panel de trabajo; barra de navegación fija abajo */
+:root{
+  --paper:#F1F4F2; --surface:#FFFFFF; --ink:#12262A; --ink-2:#506467; --line:#D3DDD9;
+  --pine:#0F5257; --pine-ink:#FFFFFF; --pine-soft:#E0EDEA; --sun:#C98A12; --sun-soft:#FBF0D9;
+  --warn:#B4462F; --warn-soft:#F8E4DE; --ok:#2E7D4F;
+  --f-display:"Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+  --f-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#0C1517; --surface:#13201F; --ink:#E3ECE9; --ink-2:#98ACA8; --line:#26393A;
+  --pine:#5EBFB2; --pine-ink:#06201E; --pine-soft:#173230; --sun:#EDB54A; --sun-soft:#2C2412;
+  --warn:#F08A6E; --warn-soft:#3A1F18; --ok:#6CCB91; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#0C1517; --surface:#13201F; --ink:#E3ECE9; --ink-2:#98ACA8; --line:#26393A;
+  --pine:#5EBFB2; --pine-ink:#06201E; --pine-soft:#173230; --sun:#EDB54A; --sun-soft:#2C2412;
+  --warn:#F08A6E; --warn-soft:#3A1F18; --ok:#6CCB91; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{font-size:112.5%}
+html,body{background:var(--paper)}
+body{margin:0;color:var(--ink);font:1rem/1.6 var(--f-body);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+.mono{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.02em}
+
+/* ---------- Barra superior ---------- */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{display:flex;align-items:center;gap:14px;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1280px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{width:46px;height:34px;flex:none;border-radius:8px;background:var(--pine);color:var(--pine-ink);display:grid;place-items:center;font:700 .82rem/1 var(--f-display);letter-spacing:.06em}
+.brand b{display:block;font:700 1rem/1.1 var(--f-display)}
+.brand small{display:block;color:var(--ink-2);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand>div{min-width:0}
+.top-tools{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:var(--paper);border:1px solid var(--line);font-size:.8rem;color:var(--ink-2);white-space:nowrap}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:var(--sun)}
+.chip.live .dot{background:var(--ok);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 16px;font-weight:600;font-size:.92rem;cursor:pointer;transition:background .15s,border-color .15s,transform .1s}
+.btn:hover{border-color:var(--pine)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--pine);border-color:var(--pine);color:var(--pine-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.warn{background:var(--warn);border-color:var(--warn);color:#fff}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 12px;font-size:.82rem}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+
+/* ---------- Cuerpo ---------- */
+.shell{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:290px minmax(0,1fr);gap:36px;padding-block:28px 120px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.route{position:sticky;top:84px;align-self:start;max-height:calc(100vh - 110px);overflow:auto;padding-right:4px}
+.route h4{margin:0 0 10px;font:600 .72rem/1 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.route ol{list-style:none;margin:0;padding:0;position:relative}
+.route ol::before{content:"";position:absolute;left:11px;top:14px;bottom:14px;border-left:2px dotted var(--line)}
+.stop{position:relative}
+.stop button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;align-items:start;width:100%;padding:7px 8px 7px 0;border-radius:8px;cursor:pointer}
+.stop button:focus-visible{outline:3px solid var(--sun)}
+.pin{width:24px;height:24px;border-radius:50%;background:var(--paper);border:2px solid var(--line);display:grid;place-items:center;font:600 .62rem/1 var(--f-mono);color:var(--ink-2);position:relative;z-index:1}
+.stop .lbl{font-size:.88rem;line-height:1.3;padding-top:2px}
+.stop .lbl small{display:block;color:var(--ink-2);font-size:.78rem;letter-spacing:.04em}
+.stop .meter{display:block;height:3px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}
+.stop .meter i{display:block;height:100%;background:var(--pine);width:0;transition:width .3s}
+.stop.done .pin{background:var(--pine);border-color:var(--pine);color:var(--pine-ink)}
+.stop.current .pin{border-color:var(--sun);background:var(--sun-soft);color:var(--ink);box-shadow:0 0 0 4px var(--sun-soft)}
+.stop.current .lbl{font-weight:700}
+.stop.off{opacity:.38}
+.stop.off button{cursor:default}
+.sect-label{margin:14px 0 4px 34px;font:600 .68rem/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--sun)}
+
+main{min-width:0}
+main:focus{outline:none}
+.mobile-progress{display:none}
+.page-head{display:grid;gap:8px;margin-bottom:22px}
+.eyebrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--ink-2);font-size:.82rem}
+.eyebrow .sec{font:600 .72rem/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--pine)}
+.page-head h2{font-size:clamp(1.6rem,1.1rem + 1.6vw,2.3rem);font-weight:700;letter-spacing:-.01em}
+.page-head .persp{color:var(--ink-2);font-size:.95rem}
+
+.cue{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start;background:var(--sun-soft);border-radius:var(--r);padding:14px 18px;margin-bottom:26px}
+.cue svg{width:22px;height:22px;color:var(--sun);margin-top:2px}
+.cue p{margin:0;font-size:1.02rem;max-width:68ch}
+.cue small{display:block;font:600 .68rem/1.2 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--sun);margin-bottom:4px}
+
+/* ---------- Bloques Likert ---------- */
+.block{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:22px;overflow:hidden}
+.block-h{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline;padding:16px 20px 12px;border-bottom:1px solid var(--line)}
+.tag{font:500 .74rem/1 var(--f-mono);color:var(--pine);background:var(--pine-soft);padding:5px 8px;border-radius:6px}
+.block-h h3{font-size:1.12rem;font-weight:700}
+.block-h .cnt{margin-left:auto;font-size:.8rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.block-note{padding:10px 20px 0;color:var(--ink-2);font-style:italic;font-size:.93rem}
+.block-cue{margin:12px 20px 0;padding:8px 12px;border-left:3px solid var(--sun);background:var(--sun-soft);font-size:.9rem;border-radius:0 6px 6px 0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:12px 20px 4px;font-size:.88rem;color:var(--ink-2)}
+.legend span b{font-family:var(--f-mono);color:var(--ink);margin-right:4px}
+.items{padding:6px 8px 10px}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;align-items:center;padding:12px;border-radius:10px;outline:none;transition:background .15s}
+.item:hover{background:var(--paper)}
+.item:focus-visible,.item.kfocus{background:var(--paper);box-shadow:inset 0 0 0 2px var(--sun)}
+.item+.item{border-top:1px dashed var(--line)}
+.item .code{font:500 .74rem/1.3 var(--f-mono);color:var(--ink-2);padding-top:2px}
+.item .stmt{margin:0;font-size:1.1rem;line-height:1.5}
+.item.missing{background:var(--warn-soft)}
+.item.missing .code{color:var(--warn)}
+.opts{display:flex;gap:6px;flex-wrap:nowrap}
+.opt{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);font:600 .95rem/1 var(--f-body);cursor:pointer;display:grid;place-items:center;transition:all .12s;font-variant-numeric:tabular-nums}
+.opt:hover{border-color:var(--pine);color:var(--pine)}
+.opt[aria-checked="true"]{background:var(--pine);border-color:var(--pine);color:var(--pine-ink);transform:scale(1.06)}
+.opt.ns{width:auto;padding:0 12px;border-radius:999px;border-style:dashed;font-size:.85rem;margin-left:6px;color:var(--ink-2)}
+.opt.ns[aria-checked="true"]{background:var(--ink-2);border-color:var(--ink-2);border-style:solid;color:var(--surface)}
+
+/* ---------- Campos ---------- */
+.fields{display:grid;gap:12px}
+.field{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 20px}
+.field.missing{border-color:var(--warn);background:var(--warn-soft)}
+.field .q{display:flex;gap:12px;align-items:baseline;margin-bottom:12px}
+.field .q label,.field .q span.t{font-weight:600;font-size:1.04rem}
+.choices{display:flex;flex-wrap:wrap;gap:8px}
+.choice{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 15px;cursor:pointer;font-size:.93rem;transition:all .12s}
+.choice:hover{border-color:var(--pine)}
+.choice[aria-checked="true"]{background:var(--pine);border-color:var(--pine);color:var(--pine-ink);font-weight:600}
+.choice.big{padding:14px 26px;font-size:1.05rem;font-weight:600}
+.choice.big.no[aria-checked="true"]{background:var(--warn);border-color:var(--warn);color:#fff}
+input[type=text],input[type=email],input[type=date],textarea{width:100%;font:inherit;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:11px 14px}
+input:focus,textarea:focus{outline:none;border-color:var(--pine);box-shadow:0 0 0 3px var(--pine-soft)}
+textarea{min-height:110px;resize:vertical}
+.choice.multi{display:inline-flex;align-items:center;gap:8px;border-radius:10px}
+.choice.multi::before{content:"";width:16px;height:16px;border-radius:4px;border:1.5px solid currentColor;opacity:.55;flex:none}
+.choice.multi[aria-checked="true"]::before{opacity:1;background:var(--pine-ink);box-shadow:inset 0 0 0 3px var(--pine)}
+.field .fhint{margin:-6px 0 12px;color:var(--ink-2);font-size:.88rem}
+.field.optional .q .t::after,.field.optional .q label::after{content:" (opcional)";font-weight:400;color:var(--ink-2);font-size:.85rem}
+.other{margin-top:10px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+
+/* ---------- Presentación ---------- */
+.letter{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:22px}
+.letter-h{position:relative;padding:26px 28px 22px;background:var(--pine);color:var(--pine-ink);overflow:hidden}
+.letter-h canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.22;pointer-events:none}
+.letter-h .k{position:relative;font:600 .72rem/1.3 var(--f-body);letter-spacing:.14em;text-transform:uppercase;opacity:.85}
+.letter-h h1{position:relative;font-size:clamp(1.4rem,1rem + 1.4vw,2rem);margin-top:8px;max-width:28ch}
+.letter-h p{position:relative;margin:10px 0 0;opacity:.9;font-size:.92rem}
+.letter-b{padding:22px 28px 26px;max-width:76ch}
+.letter-b p{margin:0 0 12px}
+.letter-b ul{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+.letter-b li{position:relative;padding-left:22px}
+.letter-b li::before{content:"";position:absolute;left:2px;top:.62em;width:8px;height:8px;border-radius:50%;border:2px solid var(--pine)}
+.read-hint{display:inline-flex;gap:6px;align-items:center;font-size:.8rem;color:var(--ink-2);margin-bottom:10px}
+.decide{display:grid;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px}
+.decide .t{font:700 1.2rem/1.3 var(--f-display)}
+.decide .h{font-size:.85rem;color:var(--ink-2)}
+
+/* ---------- Cierre ---------- */
+.status{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;font-weight:700;font-size:.9rem}
+.st-ok{background:var(--pine-soft);color:var(--pine)}
+.st-warn{background:var(--sun-soft);color:var(--sun)}
+.st-end{background:var(--warn-soft);color:var(--warn)}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:18px 0}
+.sum{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.sum small{display:block;color:var(--ink-2);font-size:.85rem}
+.sum b{font:700 1.5rem/1.2 var(--f-display);font-variant-numeric:tabular-nums}
+.sum .bar{height:4px;border-radius:2px;background:var(--line);margin-top:8px;overflow:hidden}
+.sum .bar i{display:block;height:100%;background:var(--pine)}
+.missing-list{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.missing-list button{all:unset;cursor:pointer;font:500 .74rem/1 var(--f-mono);padding:6px 8px;border-radius:6px;background:var(--warn-soft);color:var(--warn)}
+.missing-list button:focus-visible{outline:2px solid var(--sun)}
+.done-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:34px 28px;text-align:left;display:grid;gap:12px;max-width:640px}
+.done-card .check{width:54px;height:54px;border-radius:50%;background:var(--pine);color:var(--pine-ink);display:grid;place-items:center}
+.done-card h2{font-size:1.8rem}
+.done-card .id{font:500 1rem/1 var(--f-mono);background:var(--paper);padding:10px 14px;border-radius:8px;justify-self:start}
+
+/* ---------- Navegación inferior ---------- */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-in{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:12px;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.nav .prog{flex:1;min-width:0;display:grid;gap:5px}
+.nav .prog small{color:var(--ink-2);font-size:.8rem;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.track i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--pine),var(--sun));transition:width .35s}
+.kbd{display:inline-block;font:500 .7rem/1 var(--f-mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:2px 5px;background:var(--surface)}
+.hint{color:var(--ink-2);font-size:.8rem}
+
+/* ---------- Avisos y tarjeta de escala ---------- */
+.banner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--sun-soft);border:1px solid var(--sun);border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:.92rem}
+.banner.info{background:var(--pine-soft);border-color:var(--pine)}
+.overlay{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--ink) 55%,transparent);display:grid;place-items:center;padding:20px}
+.scalecard{background:var(--surface);border-radius:18px;padding:28px;max-width:960px;width:100%;display:grid;gap:20px;max-height:90vh;overflow:auto}
+.scalecard h3{font-size:1.5rem}
+.bigscale{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.bigscale div{border:2px solid var(--line);border-radius:14px;padding:16px 12px;text-align:center}
+.bigscale b{display:block;font:700 2.4rem/1 var(--f-display);color:var(--pine);margin-bottom:8px}
+.bigscale span{font-size:.95rem;font-weight:600}
+.bigscale .nsx{border-style:dashed}
+.bigscale .nsx b{color:var(--ink-2);font-size:1.6rem;line-height:1.5}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:999px;font-size:.9rem;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+@media (max-width:920px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:0;padding-top:18px}
+  .route{display:none}
+  .mobile-progress{display:flex;gap:4px;margin-bottom:16px}
+  .mobile-progress i{flex:1;height:4px;border-radius:2px;background:var(--line)}
+  .mobile-progress i.d{background:var(--pine)}
+  .mobile-progress i.c{background:var(--sun)}
+  .item{grid-template-columns:minmax(0,1fr);gap:8px}
+  .opts{flex-wrap:wrap}
+  .brand small{display:none}
+  .hide-sm{display:none!important}
+}
+@media (max-width:420px){
+  .opt{width:42px;height:42px}
+  .letter-h,.letter-b{padding-left:18px;padding-right:18px}
+  .nav .prog small{font-size:.78rem}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">SIAR</div>
+      <div><b>Encuesta a residentes y turistas</b><small>Proyecto SIAR · FCE · Universidad Nacional de Córdoba</small></div>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="route" aria-label="Secciones de la encuesta">
+    <h4>Su recorrido</h4>
+    <ol id="route"></ol>
+  </aside>
+  <main id="main" tabindex="-1">
+    <div class="mobile-progress" id="mprog" aria-hidden="true"></div>
+    <div id="banners"></div>
+    <div id="view"></div>
+  </main>
+</div>
+
+<nav class="nav" aria-label="Navegación entre pasos" id="navbar">
+  <div class="nav-in">
+    <button class="btn ghost" type="button" id="btnPrev">← Atrás</button>
+    <div class="prog">
+      <small id="progTxt"></small>
+      <div class="track"><i id="progBar"></i></div>
+    </div>
+    <button class="btn primary" type="button" id="btnNext">Siguiente →</button>
+  </div>
+</nav>
+
+<div class="toast" id="toast" hidden></div>
+<script>
+(function(){
+"use strict";
+var Q = {"version": "integrada-2026-10", "scales": {"AC": ["Totalmente en desacuerdo", "En desacuerdo", "Ni de acuerdo ni en desacuerdo", "De acuerdo", "Totalmente de acuerdo"], "FR": ["Nunca", "", "", "", "Siempre"]}, "destinos": ["Mar del Plata", "Córdoba Ciudad", "San Martín de los Andes"], "t8": {"opciones": ["Mapas o navegación", "Reservas en línea", "Pago digital o QR", "Web o app oficial de turismo del destino", "Redes sociales para informarse", "Sitios de opiniones de viajeros", "Ninguna"], "cols": ["T8_mapas", "T8_reservas", "T8_pago", "T8_web_oficial", "T8_redes", "T8_opiniones", "T8_ninguna"]}, "f2cols": ["F2_MDP", "F2_CBA", "F2_SMA"], "intro": {"titulo": "Percepciones de residentes y turistas sobre Mar del Plata, Córdoba y San Martín de los Andes", "proyecto": "Proyecto SIAR — Sostenibilidad, Inteligencia, Autenticidad y Responsabilidad Turística", "institucion": "Facultad de Ciencias Económicas · Universidad Nacional de Córdoba", "saludo": "Estimad@, muchas gracias por ingresar a esta encuesta.", "parrafos": ["Forma parte del Proyecto SIAR – Sostenibilidad, Inteligencia, Autenticidad y Responsabilidad Turística, de la Facultad de Ciencias Económicas de la Universidad Nacional de Córdoba. El proyecto estudia el turismo en tres destinos de Argentina: Mar del Plata, Córdoba Ciudad y San Martín de los Andes.", "Queremos conocer cómo perciben estos destinos quienes viven en ellos y quienes los visitan: su identidad, su sostenibilidad, su gestión, el uso de tecnologías y la propuesta de las empresas turísticas locales. Responder lleva aproximadamente 15 minutos.", "Antes de empezar, le pedimos que lea lo siguiente:"], "puntos": ["<b>Su participación es voluntaria y gratuita.</b> Puede no participar o interrumpir la encuesta en cualquier momento, sin ningún perjuicio.", "La información será tratada de forma confidencial, utilizada exclusivamente con fines académicos y publicada de manera agregada, sin identificar a ninguna persona de forma individual.", "La confidencialidad de sus datos está resguardada por la Declaración de Helsinki y por la Ley N° 25.326 de Protección de los Datos Personales.", "El proyecto fue aprobado por la Secretaría de Investigación de la Universidad Nacional de Córdoba."], "pregunta": "¿Es usted mayor de 18 años y acepta responder la encuesta?", "si": "Sí, soy mayor de 18 y acepto", "no": "No"}, "steps": [{"id": "filtros", "section": "F", "sectionTitle": "Filtros", "title": "Su relación con los destinos", "cue": "Estas preguntas nos permiten saber sobre qué destino le vamos a consultar.", "cueLabel": "Antes de empezar", "blocks": [{"type": "fields", "fields": [{"id": "F1", "label": "¿En qué ciudad vive actualmente?", "type": "choice", "options": ["Mar del Plata", "Córdoba Ciudad", "San Martín de los Andes", "Otra ciudad"], "other": "F1_otra", "when": null, "required": true}, {"id": "F1a", "label": "¿Cuántos años hace que vive en {ciudad}?", "type": "choice", "options": ["Menos de 1", "1–5", "6–10", "Más de 10"], "other": null, "when": "residente", "required": true}, {"id": "F2", "label": "En los últimos 24 meses, ¿visitó como turista alguno de estos destinos?", "hint": "Puede marcar más de uno.", "type": "multi", "options": "F2_DYN", "exclusive": "Ninguno", "required": true, "when": "f1_respondida"}, {"id": "F3", "label": "De los destinos que visitó, ¿cuál fue el más reciente?", "type": "choice", "options": "F3_DYN", "required": true, "when": "f2_varios"}]}]}, {"id": "A", "section": "A", "sectionTitle": "Datos de la persona", "title": "Datos de la persona", "blocks": [{"type": "fields", "fields": [{"id": "P1", "label": "¿Cuál es su edad?", "type": "choice", "options": ["18–24", "25–34", "35–44", "45–54", "55–64", "65 años o más"], "other": null, "when": null, "required": true}, {"id": "P2", "label": "¿Con qué género se identifica?", "type": "choice", "options": ["Mujer", "Varón", "Otra identidad", "Prefiero no responder"], "other": null, "when": null, "required": true}, {"id": "P3", "label": "¿Cuál es su máximo nivel educativo alcanzado?", "type": "choice", "options": ["Secundario incompleto", "Secundario completo", "Terciario", "Universitario", "Posgrado"], "other": null, "when": null, "required": true}, {"id": "P4", "label": "¿Cuál es su actividad principal?", "type": "choice", "options": ["Estudiante", "Empleado/a", "Profesional independiente", "Empresario/a o comerciante", "Sector público", "Jubilado/a", "Otra"], "other": "P4_otra", "when": null, "required": true}, {"id": "P6", "label": "¿Trabaja en una actividad vinculada al turismo? (alojamiento, gastronomía, agencias, transporte, comercio orientado a visitantes)", "type": "choice", "options": ["Sí", "No"], "other": null, "when": null, "required": true}]}]}, {"id": "B", "section": "B", "sectionTitle": "Comportamiento responsable al viajar", "title": "Comportamiento responsable al viajar", "cue": "Indique en qué medida está de acuerdo con cada afirmación, de 1 (totalmente en desacuerdo) a 5 (totalmente de acuerdo).", "cueLabel": "Cómo responder", "blocks": [{"type": "fields", "fields": [{"id": "B0", "label": "¿Realizó algún viaje turístico, a cualquier destino, en los últimos 24 meses?", "type": "choice", "options": ["Sí", "No"], "other": null, "when": "no_turista", "required": true}]}, {"code": "ATT", "title": "Actitud hacia el comportamiento responsable", "scale": "AC", "ns": false, "note": "Considere cómo debería comportarse una persona durante sus viajes turísticos.", "cue": null, "when": null, "items": [{"id": "ATT1", "text": "Comportarse responsablemente durante un viaje turístico es algo positivo."}, {"id": "ATT2", "text": "Actuar responsablemente mejora la experiencia de un viaje turístico."}, {"id": "ATT3", "text": "Respetar el ambiente, la cultura y las personas del lugar visitado es importante cuando se viaja."}]}, {"code": "SN", "title": "Norma subjetiva", "scale": "AC", "ns": false, "note": null, "cue": null, "when": null, "items": [{"id": "SN1", "text": "Las personas importantes para mí esperan que me comporte responsablemente cuando viajo."}, {"id": "SN2", "text": "Las personas de mi entorno consideran que debemos respetar a las comunidades que visitamos."}, {"id": "SN3", "text": "Existe una expectativa social de que, como turistas, reduzcamos los efectos negativos de nuestros comportamientos."}]}, {"code": "PBC", "title": "Control conductual percibido", "scale": "AC", "ns": false, "note": null, "cue": null, "when": null, "items": [{"id": "PBC1", "text": "Soy capaz de comportarme responsablemente durante mis viajes turísticos."}, {"id": "PBC2", "text": "Depende principalmente de mí respetar las normas y costumbres del lugar que visito."}, {"id": "PBC3", "text": "Puedo reducir los impactos negativos de mi comportamiento (reciclando, ahorrando agua, cumpliendo las normas del lugar)."}]}, {"code": "CR", "title": "Comportamiento responsable declarado", "scale": "FR", "ns": false, "note": "Considere sus viajes turísticos recientes.", "cue": "En este bloque la escala es de frecuencia: 1 = Nunca · 5 = Siempre.", "when": "viajo", "items": [{"id": "CR1", "text": "Respeto las normas y regulaciones de los lugares que visito."}, {"id": "CR2", "text": "Respeto las costumbres y formas de vida de las comunidades locales."}, {"id": "CR3", "text": "Procuro reducir los residuos y otros impactos ambientales que genero durante mis viajes."}]}, {"code": "BI-CR", "title": "Intención de comportamiento responsable", "scale": "AC", "ns": false, "note": null, "cue": "Escala de acuerdo: 1 = Totalmente en desacuerdo · 5 = Totalmente de acuerdo.", "when": null, "items": [{"id": "BICR1", "text": "En mis próximos viajes, tengo intención de comportarme responsablemente."}, {"id": "BICR2", "text": "En mis próximos viajes, procuraré respetar las normas, la cultura y la forma de vida de las comunidades que visite."}, {"id": "BICR3", "text": "En mis próximos viajes, procuraré reducir los impactos ambientales y sociales de mis acciones."}]}]}, {"id": "C1", "section": "C", "sectionTitle": "Módulo residente", "title": "Identidad y sostenibilidad de {ciudad}", "when": "residente", "cue": "Responda pensando en {ciudad}, la ciudad donde vive: sus características, su gestión y las condiciones de vida de su comunidad.", "cueLabel": "Su ciudad", "blocks": [{"code": "AUT", "title": "Autenticidad e identidad", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "AUT-C1", "text": "{ciudad} conserva una identidad propia que la diferencia de otras ciudades."}, {"id": "AUT-C2", "text": "La cultura y las tradiciones de {ciudad} se expresan de manera auténtica y genuina."}, {"id": "AUT-C3", "text": "En {ciudad} se mantienen formas de vida, prácticas y expresiones culturales propias de la comunidad."}]}, {"code": "SMART", "title": "Ciudad inteligente y tecnologías", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "SMART-C1", "text": "{ciudad} dispone de información digital actualizada y útil sobre servicios públicos, actividades y lugares de interés."}, {"id": "SMART-C2", "text": "Las tecnologías digitales facilitan los desplazamientos y el acceso a servicios en {ciudad}."}, {"id": "SMART-C3", "text": "{ciudad} utiliza tecnologías para mejorar la gestión urbana y el uso eficiente de los recursos."}]}, {"code": "SOST-A", "title": "Sostenibilidad ambiental", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "SOST-A1", "text": "En {ciudad} se promueve la conservación de los espacios naturales y la biodiversidad."}, {"id": "SOST-A2", "text": "En {ciudad} se fomenta el uso eficiente y responsable del agua y la energía."}, {"id": "SOST-A3", "text": "En {ciudad} se gestionan adecuadamente los residuos y se promueve su reducción y reciclaje."}]}, {"code": "SOST-SC", "title": "Sostenibilidad sociocultural", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "SOST-SC1", "text": "En {ciudad} se protege el patrimonio histórico, cultural y arquitectónico."}, {"id": "SOST-SC2", "text": "En {ciudad} se promueven el respeto y la convivencia entre personas de diferentes culturas y grupos sociales."}, {"id": "SOST-SC3", "text": "Las decisiones sobre el desarrollo de {ciudad} respetan y fortalecen la identidad y las tradiciones de la comunidad."}]}, {"code": "SOST-E", "title": "Sostenibilidad económica", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "SOST-E1", "text": "En {ciudad} se promueven oportunidades económicas para los comercios y los emprendimientos locales."}, {"id": "SOST-E2", "text": "Las actividades económicas y turísticas contribuyen a generar empleo para la población local."}, {"id": "SOST-E3", "text": "En {ciudad} se procura que los beneficios económicos del desarrollo se distribuyan entre distintos sectores de la comunidad."}]}, {"code": "GOV", "title": "Gobernanza", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "GOV-C1", "text": "Quienes vivimos en {ciudad} tenemos oportunidades reales de participar en las decisiones que la afectan."}, {"id": "GOV-C2", "text": "La gestión de {ciudad} tiene una planificación urbana y turística de mediano y largo plazo."}, {"id": "GOV-C3", "text": "Las autoridades procuran equilibrar los intereses de diferentes actores (residentes, empresas, servicios, visitantes, gobierno, etc.)."}]}]}, {"id": "C2", "section": "C", "sectionTitle": "Módulo residente", "title": "Tecnología en {ciudad}", "when": "residente", "cue": "Responda pensando en {ciudad}, la ciudad donde vive: sus características, su gestión y las condiciones de vida de su comunidad.", "cueLabel": "Su ciudad", "blocks": [{"code": "PE", "title": "Expectativa de rendimiento de la tecnología", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "PE-C1", "text": "Los servicios digitales de {ciudad} contienen información útil para realizar paseos, visitas culturales y actividades gastronómicas."}, {"id": "PE-C2", "text": "Las tecnologías inteligentes o digitales de {ciudad} mejoran mi experiencia al usar sus servicios (transporte, pago de servicios, estacionamiento, etc.)."}, {"id": "PE-C3", "text": "Los servicios inteligentes o digitales pueden ayudarme a ahorrar tiempo al hacer gestiones o desplazarme por la ciudad."}]}, {"code": "EE", "title": "Facilidad de uso percibida", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "EE-C1", "text": "Aprender a utilizar los servicios digitales (apps) de {ciudad} resulta sencillo."}, {"id": "EE-C2", "text": "Me resulta fácil utilizar las aplicaciones o herramientas digitales disponibles en {ciudad}."}, {"id": "EE-C3", "text": "Interactuar con los servicios digitales de {ciudad} requiere poco esfuerzo."}]}, {"code": "SI", "title": "Influencia social sobre el uso tecnológico", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "SI-C1", "text": "Mis conocidos consideran conveniente utilizar los servicios digitales de {ciudad}."}, {"id": "SI-C2", "text": "Las opiniones de mi entorno influyen en mi decisión de utilizar aplicaciones o servicios digitales."}, {"id": "SI-C3", "text": "Las recomendaciones de otras personas podrían motivarme a utilizar las tecnologías disponibles en {ciudad}."}]}, {"code": "FC", "title": "Condiciones facilitadoras", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "FC-C1", "text": "{ciudad} dispone de infraestructura tecnológica suficiente para utilizar servicios digitales."}, {"id": "FC-C2", "text": "Dispongo de los recursos y conocimientos necesarios para utilizar esos servicios digitales (apps, QR, pago digital, etc.)."}, {"id": "FC-C3", "text": "Si tuviera dificultades para utilizar los servicios digitales, podría encontrar ayuda o asistencia."}]}]}, {"id": "C3", "section": "C", "sectionTitle": "Módulo residente", "title": "Turismo y empresas turísticas en {ciudad}", "when": "residente", "cue": "Piense en los alojamientos, restaurantes, agencias y demás empresas que atienden a turistas en {ciudad}.", "cueLabel": "Su ciudad", "blocks": [{"code": "EMP", "title": "Empresas turísticas locales", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "EMP-C1", "text": "Ofrecen propuestas que se diferencian de las de otros destinos."}, {"id": "EMP-C2", "text": "Se adaptan a los cambios del contexto (económicos, de la demanda, climáticos)."}, {"id": "EMP-C3", "text": "Aplican prácticas visibles de cuidado ambiental (ahorro de agua y energía, gestión de residuos)."}, {"id": "EMP-C4", "text": "Incorporan herramientas digitales (reservas en línea, pagos digitales, redes sociales, información en línea)."}, {"id": "EMP-C5", "text": "Ponen en valor la identidad, la cultura y los productos locales."}, {"id": "EMP-C6", "text": "Contribuyen al bienestar de la comunidad (empleo local, compras a proveedores locales, acciones sociales)."}]}, {"code": "IMP", "title": "El turismo en su ciudad", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "IMP-C1", "text": "El turismo mejora la calidad de vida de quienes vivimos en {ciudad}."}, {"id": "IMP-C2", "text": "El turismo genera problemas en {ciudad} (congestión, ruido, aumento de precios)."}, {"id": "IMP-C3", "text": "Apoyo que el turismo se siga desarrollando en {ciudad}."}]}]}, {"id": "C4", "section": "C", "sectionTitle": "Módulo residente", "title": "Imagen y valoración de {ciudad}", "when": "residente", "cue": "Responda pensando en {ciudad}, la ciudad donde vive: sus características, su gestión y las condiciones de vida de su comunidad.", "cueLabel": "Su ciudad", "blocks": [{"code": "IM", "title": "Imagen", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "IM-C1", "text": "Considero que {ciudad} tiene una imagen positiva."}, {"id": "IM-C2", "text": "{ciudad} ofrece lugares, actividades y experiencias de calidad."}, {"id": "IM-C3", "text": "El entorno natural, social y cultural de {ciudad} resulta atractivo."}]}, {"code": "VAL", "title": "Valoración global", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "VAL-C1", "text": "En términos generales, {ciudad} ofrece una buena calidad de vida."}, {"id": "VAL-C2", "text": "Los beneficios que ofrece {ciudad} superan sus problemas o inconvenientes."}, {"id": "VAL-C3", "text": "En general, {ciudad} es un buen lugar para vivir y desarrollarme laboralmente."}]}, {"code": "LOY", "title": "Recomendación", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "LOY-C1", "text": "Recomendaría {ciudad} a otras personas para que la conozcan."}, {"id": "LOY-C2", "text": "Hablaría positivamente de {ciudad} a otras personas."}, {"id": "LOY-C3", "text": "Si alguien me preguntara por {ciudad}, destacaría sus aspectos positivos."}]}]}, {"id": "D1", "section": "D", "sectionTitle": "Módulo turista", "title": "Su viaje a {destino}", "when": "turista", "cue": "Responda pensando en su visita más reciente a {destino}.", "cueLabel": "Su último viaje", "blocks": [{"type": "fields", "fields": [{"id": "T2", "label": "¿Cuál fue el motivo principal del viaje?", "type": "choice", "options": ["Vacaciones u ocio", "Visita a familiares o amigos", "Trabajo o negocios", "Evento o congreso", "Estudio", "Salud", "Otro"], "other": "T2_otro", "when": null, "required": true}, {"id": "T3", "label": "¿Cuánto duró su visita?", "type": "choice", "options": ["Menos de 24 horas", "1–2 días", "3–5 días", "6–10 días", "Más de 10 días"], "other": null, "when": null, "required": true}, {"id": "T4", "label": "¿Cuántas veces había visitado antes {destino}?", "type": "choice", "options": ["Nunca", "Una vez", "Dos o tres veces", "Cuatro o más veces"], "other": null, "when": null, "required": true}, {"id": "T5", "label": "¿Hace cuánto fue su última visita a {destino}?", "type": "choice", "options": ["Menos de 6 meses", "Entre 6 y 12 meses", "Entre 12 y 24 meses"], "other": null, "when": null, "required": true}, {"id": "T6", "label": "¿Dónde se alojó principalmente?", "type": "choice", "options": ["Hotel", "Apart o cabaña", "Alquiler temporario por plataforma", "Casa de familiares o amigos", "Camping", "No pernocté", "Otro"], "other": null, "when": null, "required": true}, {"id": "T7", "label": "¿Con quién viajó?", "type": "choice", "options": ["Solo/a", "En pareja", "Con familia", "Con amigos", "En grupo organizado"], "other": null, "when": null, "required": true}, {"id": "T8", "label": "¿Qué herramientas digitales usó durante el viaje?", "hint": "Puede marcar varias.", "type": "multi", "options": ["Mapas o navegación", "Reservas en línea", "Pago digital o QR", "Web o app oficial de turismo del destino", "Redes sociales para informarse", "Sitios de opiniones de viajeros", "Ninguna"], "exclusive": "Ninguna", "required": true}]}]}, {"id": "D2", "section": "D", "sectionTitle": "Módulo turista", "title": "Identidad, sostenibilidad y gestión de {destino}", "when": "turista", "cue": "Según lo que pudo observar o percibir durante su visita más reciente a {destino}, indique en qué medida está de acuerdo. Si no tuvo forma de saberlo, marque NS (No sabe).", "cueLabel": "Destino evaluado", "blocks": [{"code": "AUT", "title": "Autenticidad del destino", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "AUT-T1", "text": "{destino} conserva una identidad propia que lo diferencia de otros destinos."}, {"id": "AUT-T2", "text": "La cultura y las tradiciones locales se presentan de manera genuina y auténtica."}, {"id": "AUT-T3", "text": "La experiencia turística permite entrar en contacto con la cultura local y su estilo de vida."}]}, {"code": "SMART", "title": "Destino inteligente y tecnologías", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "SMART-T1", "text": "{destino} ofrece información digital actualizada y útil para organizar la visita."}, {"id": "SMART-T2", "text": "Las tecnologías digitales facilitan los desplazamientos y el acceso a servicios durante la estadía."}, {"id": "SMART-T3", "text": "Durante la visita vi tecnologías aplicadas a los servicios de {destino} (transporte, información, pagos)."}]}, {"code": "SOST-T-A", "title": "Sostenibilidad ambiental", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "SOST-T-A1", "text": "En {destino} se promueve la conservación de los espacios naturales y la biodiversidad."}, {"id": "SOST-T-A2", "text": "En {destino} se fomenta el uso eficiente y responsable del agua y la energía."}, {"id": "SOST-T-A3", "text": "En {destino} se gestionan adecuadamente los residuos y se promueve su reducción."}]}, {"code": "SOST-T-SC", "title": "Sostenibilidad sociocultural", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "SOST-T-SC1", "text": "En {destino} se protege el patrimonio histórico, cultural y arquitectónico."}, {"id": "SOST-T-SC2", "text": "En {destino} se promueven el respeto y la convivencia entre visitantes y comunidad local."}, {"id": "SOST-T-SC3", "text": "La oferta turística de {destino} respeta la identidad y las tradiciones locales."}]}, {"code": "SOST-T-E", "title": "Sostenibilidad económica", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "SOST-T-E1", "text": "{destino} ofrece oportunidades económicas para los comercios y emprendimientos locales."}, {"id": "SOST-T-E2", "text": "La actividad turística contribuye a generar empleo para la población local."}]}, {"code": "GOV", "title": "Gestión percibida", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "GOV-T2", "text": "{destino} se ve ordenado y bien planificado para recibir turistas."}]}]}, {"id": "D3", "section": "D", "sectionTitle": "Módulo turista", "title": "Tecnología en {destino}", "when": "turista", "cue": "Según lo que pudo observar o percibir durante su visita más reciente a {destino}, indique en qué medida está de acuerdo. Si no tuvo forma de saberlo, marque NS (No sabe).", "cueLabel": "Destino evaluado", "blocks": [{"code": "PE", "title": "Expectativa de rendimiento de la tecnología", "scale": "AC", "ns": true, "note": null, "cue": null, "when": "uso_tec", "items": [{"id": "PE-T1", "text": "Las aplicaciones y los servicios digitales de {destino} ayudan a organizar mejor la visita."}, {"id": "PE-T2", "text": "Las tecnologías inteligentes de {destino} contribuyen a mejorar la experiencia turística."}, {"id": "PE-T3", "text": "Los servicios digitales de {destino} ayudan a aprovechar mejor el tiempo durante la visita."}]}, {"code": "EE", "title": "Facilidad de uso percibida", "scale": "AC", "ns": true, "note": null, "cue": null, "when": "uso_tec", "items": [{"id": "EE-T1", "text": "Resulta sencillo aprender a utilizar los servicios digitales de {destino}."}, {"id": "EE-T2", "text": "Resulta fácil utilizar las aplicaciones y herramientas digitales de {destino} (app, QR, pago digital, etc.)."}, {"id": "EE-T3", "text": "Utilizar los servicios digitales de {destino} requiere poco esfuerzo."}]}, {"code": "SI", "title": "Influencia social sobre el uso tecnológico", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "SI-T1", "text": "Mis amigos consideran conveniente utilizar servicios digitales durante un viaje."}, {"id": "SI-T2", "text": "Las opiniones de mi entorno influyen en mi decisión de utilizar tecnologías durante un viaje."}, {"id": "SI-T3", "text": "Las recomendaciones de otros viajeros podrían motivarme a utilizar las aplicaciones de {destino}."}]}, {"code": "FC", "title": "Condiciones facilitadoras", "scale": "AC", "ns": true, "note": null, "cue": null, "when": "uso_tec", "items": [{"id": "FC-T1", "text": "{destino} dispone de infraestructura tecnológica suficiente para utilizar sus servicios digitales."}, {"id": "FC-T2", "text": "Los servicios digitales de {destino} pueden usarse con los recursos y conocimientos habituales de los turistas."}, {"id": "FC-T3", "text": "En {destino} hay ayuda o asistencia para quienes tienen dificultades con los servicios digitales."}]}, {"code": "BI-TEC", "title": "Intención de uso de tecnologías", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "BIT-T1", "text": "Tengo intención de utilizar los servicios digitales de {destino} cuando me resulten útiles."}, {"id": "BIT-T2", "text": "Es probable que use aplicaciones o herramientas digitales para informarme y desplazarme en {destino}."}, {"id": "BIT-T3", "text": "Si volviera a {destino}, procuraría aprovechar los servicios digitales disponibles."}]}]}, {"id": "D4", "section": "D", "sectionTitle": "Módulo turista", "title": "Empresas, imagen y valoración de {destino}", "when": "turista", "cue": "Según lo que pudo observar o percibir durante su visita más reciente a {destino}, indique en qué medida está de acuerdo. Si no tuvo forma de saberlo, marque NS (No sabe).", "cueLabel": "Destino evaluado", "blocks": [{"code": "EMP", "title": "Empresas turísticas que lo atendieron", "scale": "AC", "ns": true, "note": "Piense en los alojamientos, restaurantes, agencias y demás empresas que lo atendieron en {destino}.", "cue": null, "when": null, "items": [{"id": "EMP-T1", "text": "Ofrecen propuestas que se diferencian de las de otros destinos."}, {"id": "EMP-T2", "text": "Se adaptan a las necesidades y expectativas de los visitantes."}, {"id": "EMP-T3", "text": "Aplican prácticas visibles de cuidado ambiental (ahorro de agua y energía, gestión de residuos)."}, {"id": "EMP-T4", "text": "Facilitan la reserva, el pago y la comunicación por medios digitales."}, {"id": "EMP-T5", "text": "Ponen en valor la identidad, la cultura y los productos locales."}, {"id": "EMP-T6", "text": "Muestran vínculo con lo local (productos, personal o proveedores de la zona)."}]}, {"code": "IM", "title": "Imagen del destino", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "IM-T1", "text": "{destino} tiene una imagen muy positiva."}, {"id": "IM-T2", "text": "{destino} ofrece lugares atractivos, actividades y experiencias de alta calidad."}, {"id": "IM-T3", "text": "El entorno natural, social y cultural de {destino} resulta atractivo."}]}, {"code": "VAL", "title": "Valoración global", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "VAL-T1", "text": "En términos generales, {destino} es un destino turístico de alta calidad."}, {"id": "VAL-T2", "text": "Los beneficios de visitar {destino} superan sus costos e inconvenientes."}, {"id": "VAL-T3", "text": "La experiencia en {destino} justifica el tiempo y los recursos invertidos en visitarlo."}]}, {"code": "LOY", "title": "Lealtad", "scale": "AC", "ns": true, "note": null, "cue": null, "when": null, "items": [{"id": "LOY-T1", "text": "Recomendaría {destino} a otras personas."}, {"id": "LOY-T2", "text": "Hablaría positivamente de {destino} a otras personas."}, {"id": "LOY-T3", "text": "Consideraría volver a visitar {destino}."}]}]}, {"id": "E", "section": "E", "sectionTitle": "Cierre", "title": "Para terminar", "blocks": [{"type": "fields", "fields": [{"id": "E1", "label": "¿Qué es lo que más valora de {lugar}?", "type": "textarea", "required": false}, {"id": "E2", "label": "¿Qué mejoraría para que {lugar} sea más sostenible y responsable con su comunidad?", "type": "textarea", "required": false}, {"id": "E3", "label": "Si quiere recibir los resultados del estudio, deje su correo electrónico.", "type": "email", "required": false, "hint": "Opcional. Se guarda en un registro separado de sus respuestas, sin forma de vincularlo con ellas, y solo se usa para enviarle los resultados. Responsable: equipo del Proyecto SIAR, FCE-UNC. Puede pedir en cualquier momento el acceso, la corrección o la eliminación de su correo (Ley N° 25.326)."}]}]}]};
+var GAS = !!(window.google && google.script && google.script.run);
+var ENDPOINT = "https://script.google.com/macros/s/AKfycby1aVgHNfj2AtpvKkSoZ5vjiCSgNfmyaUPmQEH_JvpHAqL40OIYI9rIn18IaExlt74VuQ/exec"; if(ENDPOINT.indexOf("__")===0) ENDPOINT="";
+var DRAFT_KEY = "siar_integrada_borrador_v1";
+var DEST = Q.destinos;
+
+/* ---------- utilidades ---------- */
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function $(id){return document.getElementById(id);}
+function store(k,v){try{ if(v===undefined) return localStorage.getItem(k); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v);}catch(e){return null;}}
+function pad(n){return (n<10?"0":"")+n;}
+function newId(){var d=new Date();var r=Math.random().toString(36).slice(2,6).toUpperCase();
+  return "SIAR-"+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+"-"+pad(d.getHours())+pad(d.getMinutes())+"-"+r;}
+function toast(msg){var t=$("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(function(){t.hidden=true;},2600);}
+var ICON_INFO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>';
+
+/* ---------- estado ---------- */
+var S;
+function fresh(){ return {id:newId(), cur:"consent", visited:{consent:true}, started:null, saved:false, R:{Consentimiento:""}, tried:{}}; }
+
+/* ---------- lógica de perfiles ---------- */
+function arr(v){return Array.isArray(v)?v:[];}
+function residente(){return DEST.indexOf(S.R.F1)>-1;}
+function f2list(){return arr(S.R.F2).filter(function(x){return x!=="Ninguno";});}
+function destino(){var l=f2list(); if(l.length===1) return l[0]; if(l.length>1&&l.indexOf(S.R.F3)>-1) return S.R.F3; return null;}
+function turista(){return f2list().length>0;}
+function f2Respondida(){return arr(S.R.F2).length>0;}
+function fuera(){return !!S.R.F1&&f2Respondida()&&!residente()&&!turista();}
+function t8(){return arr(S.R.T8);}
+var COND={
+  residente:residente, turista:turista,
+  f1_respondida:function(){return !!S.R.F1;},
+  f2_varios:function(){return f2list().length>1;},
+  no_turista:function(){return !turista();},
+  viajo:function(){return turista()||S.R.B0==="Sí";},
+  uso_tec:function(){return t8().length>0&&t8().indexOf("Ninguna")<0;}
+};
+function ok(w){return !w||(COND[w]?COND[w]():true);}
+function perfil(){
+  if(S.R.Consentimiento==="No") return "";
+  if(fuera()) return "Fuera del estudio";
+  if(residente()&&turista()) return "Residente y turista";
+  if(residente()) return "Residente";
+  if(turista()) return "Turista";
+  return "";
+}
+function lugar(){var c=residente()?S.R.F1:null,d=destino(); if(c&&d) return c+" y "+d; return c||d||"su ciudad o destino";}
+function fill(t){
+  return String(t).replace(/\{ciudad\}/g,S.R.F1||"su ciudad").replace(/\{destino\}/g,destino()||"el destino").replace(/\{lugar\}/g,lugar());
+}
+function opts(f){
+  if(f.options==="F2_DYN"){return DEST.filter(function(d){return d!==S.R.F1;}).concat(["Ninguno"]);}
+  if(f.options==="F3_DYN"){return f2list();}
+  return f.options;
+}
+
+/* ---------- pasos ---------- */
+var ALLSTEPS=[{id:"consent",nav:"Presentación",grp:"Inicio"}];
+Q.steps.forEach(function(s){ALLSTEPS.push({id:s.id,nav:s.title,grp:s.section==="F"?"Inicio":"Sección "+s.section,data:s});});
+ALLSTEPS.push({id:"envio",nav:"Envío",grp:"Cierre"});
+function ended(){return S.R.Consentimiento==="No"||fuera();}
+function visibleSteps(){
+  if(S.R.Consentimiento==="No") return ALLSTEPS.filter(function(s){return s.id==="consent"||s.id==="envio";});
+  if(fuera()) return ALLSTEPS.filter(function(s){return s.id==="consent"||s.id==="filtros"||s.id==="envio";});
+  return ALLSTEPS.filter(function(s){return !s.data||ok(s.data.when);});
+}
+function curIndex(vs){for(var i=0;i<vs.length;i++) if(vs[i].id===S.cur) return i; return 0;}
+function visFields(b){return b.fields.filter(function(f){return ok(f.when);});}
+function reqIds(step){
+  if(step.id==="consent") return ["Consentimiento"];
+  if(!step.data) return [];
+  var ids=[];
+  step.data.blocks.forEach(function(b){
+    if(b.type==="fields") visFields(b).forEach(function(f){ if(f.required!==false) ids.push(f.id); });
+    else if(ok(b.when)) b.items.forEach(function(it){ids.push(it.id);});
+  });
+  return ids;
+}
+function answered(id){var v=S.R[id]; if(Array.isArray(v)) return v.length>0; return v!==undefined&&v!==null&&String(v).trim()!=="";}
+function allReq(){var a=[];visibleSteps().forEach(function(s){if(s.data) a=a.concat(reqIds(s));});return a;}
+
+/* ---------- borrador local ---------- */
+var saveT;
+function persist(){clearTimeout(saveT);saveT=setTimeout(function(){ if(!S.saved) store(DRAFT_KEY,JSON.stringify(S)); },250);}
+
+/* ---------- recorrido ---------- */
+var SECT_SHORT={"A":"Usted","B":"Al viajar","C":"Su ciudad","D":"Su viaje","E":"Cierre"};
+function renderRoute(){
+  var vs=visibleSteps(), html="", lastG="";
+  vs.forEach(function(st,i){
+    if(st.grp!==lastG){ if(st.data&&st.data.section!=="F") html+='<li class="sect-label" aria-hidden="true">'+esc(st.grp)+(SECT_SHORT[st.data.section]?" · "+SECT_SHORT[st.data.section]:"")+'</li>'; lastG=st.grp; }
+    var ids=reqIds(st), n=ids.filter(answered).length, tot=ids.length, off=!S.visited[st.id]||S.saved;
+    var cls="stop"+(st.id===S.cur?" current":"")+(tot&&n===tot&&st.id!==S.cur?" done":"")+(off&&st.id!==S.cur?" off":"");
+    html+='<li class="'+cls+'"><button type="button" data-go="'+st.id+'"'+(off&&st.id!==S.cur?' disabled aria-disabled="true"':'')+(st.id===S.cur?' aria-current="step"':'')+'>'+
+      '<span class="pin">'+(i+1)+'</span><span class="lbl">'+esc(fill(st.nav))+
+      (st.data&&tot?'<span class="meter"><i style="width:'+Math.round(n/tot*100)+'%"></i></span>':'')+'</span></button></li>';
+  });
+  $("route").innerHTML=html;
+  var m="";vs.forEach(function(st){var ids=reqIds(st);var d=ids.length&&ids.every(answered);m+='<i class="'+(st.id===S.cur?"c":(d?"d":""))+'"></i>';});
+  $("mprog").innerHTML=m;
+}
+
+/* ---------- piezas ---------- */
+function cueHtml(text,label){ if(!text) return ""; return '<div class="cue">'+ICON_INFO+'<div><small>'+esc(label||"Instrucción")+'</small><p>'+esc(fill(text))+'</p></div></div>'; }
+function likertBlock(b){
+  var sc=Q.scales[b.scale];
+  var n=b.items.filter(function(it){return answered(it.id);}).length;
+  var leg=sc.map(function(l,i){return l?'<span><b>'+(i+1)+'</b>'+esc(l)+'</span>':'';}).join("")+(b.ns?'<span><b>NS</b>No sabe / No puede evaluar</span>':'');
+  var h='<section class="block"><div class="block-h"><h3>'+esc(b.title)+'</h3><span class="cnt">'+n+' / '+b.items.length+'</span></div>';
+  if(b.note) h+='<div class="block-note">'+esc(fill(b.note))+'</div>';
+  if(b.cue) h+='<div class="block-cue">'+esc(fill(b.cue))+'</div>';
+  h+='<div class="legend">'+leg+'</div><div class="items">';
+  b.items.forEach(function(it){
+    var v=S.R[it.id], miss=S.tried[S.cur]&&!answered(it.id);
+    h+='<div class="item'+(miss?" missing":"")+'" id="it-'+esc(it.id)+'" data-id="'+esc(it.id)+'" data-ns="'+(b.ns?1:0)+'" tabindex="0" role="radiogroup" aria-labelledby="lb-'+esc(it.id)+'">'+
+       '<p class="stmt" id="lb-'+esc(it.id)+'">'+esc(fill(it.text))+'</p><div class="opts">';
+    for(var k=1;k<=5;k++){var lab=sc[k-1]||String(k);
+      h+='<button type="button" class="opt" role="radio" tabindex="-1" data-v="'+k+'" aria-checked="'+(String(v)===String(k))+'" title="'+esc(lab)+'" aria-label="'+k+' '+esc(lab)+'">'+k+'</button>';}
+    if(b.ns) h+='<button type="button" class="opt ns" role="radio" tabindex="-1" data-v="NS" aria-checked="'+(v==="NS")+'" title="No sabe / No puede evaluar">NS</button>';
+    h+='</div></div>';
+  });
+  return h+'</div></section>';
+}
+function fieldHtml(f){
+  var miss=S.tried[S.cur]&&f.required!==false&&!answered(f.id);
+  var h='<div class="field'+(miss?" missing":"")+(f.required===false?" optional":"")+'" id="it-'+esc(f.id)+'"><div class="q">';
+  var label=esc(fill(f.label));
+  if(f.type==="text"||f.type==="email"||f.type==="textarea"){
+    h+='<label for="in-'+esc(f.id)+'">'+label+'</label></div>'+(f.hint?'<p class="fhint">'+esc(f.hint)+'</p>':'');
+    if(f.type==="textarea") h+='<textarea id="in-'+esc(f.id)+'" data-f="'+esc(f.id)+'">'+esc(S.R[f.id]||"")+'</textarea>';
+    else h+='<input type="'+f.type+'" id="in-'+esc(f.id)+'" data-f="'+esc(f.id)+'" value="'+esc(S.R[f.id]||"")+'" autocomplete="'+(f.type==="email"?"email":"off")+'">';
+  }else{
+    var multi=f.type==="multi", o=opts(f), cur=S.R[f.id];
+    h+='<span class="t">'+label+'</span></div>'+(f.hint?'<p class="fhint">'+esc(f.hint)+'</p>':'');
+    h+='<div class="choices" role="'+(multi?"group":"radiogroup")+'">'+o.map(function(x){
+      var on=multi?arr(cur).indexOf(x)>-1:cur===x;
+      return '<button type="button" class="choice'+(multi?" multi":"")+'" role="'+(multi?"checkbox":"radio")+'" data-f="'+esc(f.id)+'" data-v="'+esc(x)+'"'+(multi?' data-multi="1" data-excl="'+esc(f.exclusive||"")+'"':'')+' aria-checked="'+on+'">'+esc(x)+'</button>';
+    }).join("")+'</div>';
+    if(f.other){var show=/^Otr/.test(cur||"");
+      h+='<div class="other"'+(show?"":" hidden")+'><input type="text" id="in-'+esc(f.other)+'" data-f="'+esc(f.other)+'" value="'+esc(S.R[f.other]||"")+'" placeholder="¿Cuál? (opcional)"></div>';}
+  }
+  return h+'</div>';
+}
+function head(st,extra){
+  var sec=st.data&&st.data.section!=="F"?'<span class="sec">Sección '+esc(st.data.section)+' · '+esc(st.data.sectionTitle)+'</span>':'<span class="sec">'+esc(st.grp)+'</span>';
+  return '<div class="page-head"><div class="eyebrow">'+sec+'</div><h2>'+esc(fill(st.nav))+'</h2>'+(extra||"")+'</div>';
+}
+
+/* ---------- vistas ---------- */
+function viewConsent(){
+  var I=Q.intro;
+  var h='<article class="letter"><div class="letter-h"><canvas id="topo" aria-hidden="true"></canvas><div class="k">'+esc(I.proyecto)+'</div><h1>'+esc(I.titulo)+'</h1><p>'+esc(I.institucion)+'</p></div>'+
+     '<div class="letter-b"><p><b>'+esc(I.saludo)+'</b></p>'+I.parrafos.map(function(p){return '<p>'+esc(p)+'</p>';}).join("")+
+     '<ul>'+I.puntos.map(function(p){return '<li>'+p+'</li>';}).join("")+'</ul></div></article>';
+  var miss=S.tried[S.cur]&&!answered("Consentimiento");
+  h+='<div class="decide'+(miss?" field missing":"")+'" id="it-Consentimiento"><span class="t">'+esc(I.pregunta)+'</span><div class="choices" role="radiogroup">'+
+     '<button type="button" class="choice big" role="radio" data-f="Consentimiento" data-v="Sí" aria-checked="'+(S.R.Consentimiento==="Sí")+'">'+esc(I.si)+'</button>'+
+     '<button type="button" class="choice big no" role="radio" data-f="Consentimiento" data-v="No" aria-checked="'+(S.R.Consentimiento==="No")+'">'+esc(I.no)+'</button></div></div>';
+  return h;
+}
+function viewStep(st){
+  var d=st.data;
+  var h=head(st);
+  h+=cueHtml(d.cue,d.cueLabel);
+  d.blocks.forEach(function(b){
+    if(b.type==="fields"){ var fs=visFields(b); if(fs.length) h+='<div class="fields">'+fs.map(fieldHtml).join("")+'</div>'; }
+    else if(ok(b.when)) h+=likertBlock(b);
+  });
+  return h;
+}
+function viewEnvio(st){
+  if(S.saved) return viewDone();
+  if(ended()){
+    var msg=S.R.Consentimiento==="No"?"Respetamos su decisión. Gracias por su tiempo.":"Esta encuesta está dirigida a personas que viven en Mar del Plata, Córdoba Ciudad o San Martín de los Andes, o que visitaron alguno de esos destinos en los últimos 24 meses. Muchas gracias por su interés.";
+    return head({grp:"Fin de la encuesta",nav:"Gracias"})+'<div class="decide"><p style="margin:0;font-size:1.05rem">'+esc(msg)+'</p><span class="h">Toque «Finalizar» para cerrar.</span></div>';
+  }
+  var h=head(st,'<p class="persp">Ya respondió todas las secciones. Si quiere, revise sus respuestas y luego envíelas.</p>');
+  h+='<div class="summary">';
+  visibleSteps().forEach(function(s){ if(!s.data||s.data.section==="F"||s.data.section==="E") return;
+    var ids=reqIds(s), n=ids.filter(answered).length; if(!ids.length) return;
+    h+='<div class="sum"><small>'+esc(fill(s.nav))+'</small><b>'+n+'<span style="font-size:.9rem;color:var(--ink-2)"> / '+ids.length+'</span></b><div class="bar"><i style="width:'+Math.round(n/ids.length*100)+'%"></i></div></div>';
+  });
+  h+='</div>';
+  if(!GAS&&!ENDPOINT) h+='<div class="banner info">Vista previa: el envío es simulado. Instalada en Google, cada respuesta se agrega como fila en la planilla.</div>';
+  return h;
+}
+function viewDone(){
+  var accepted=!ended();
+  return '<div class="done-card"><div class="check"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>'+
+    '<h2>'+(accepted?'¡Muchas gracias por participar!':'Gracias')+'</h2><p style="margin:0">'+(accepted?'Sus respuestas fueron enviadas al equipo del Proyecto SIAR. Ayudan a entender cómo se vive y se visita '+esc(lugar())+'. Ya puede cerrar esta ventana.':'Ya puede cerrar esta ventana.')+'</p></div>';
+}
+function render(focusTop){
+  var vs=visibleSteps(); if(curIndex(vs)===0&&S.cur!=="consent"&&!vs.some(function(s){return s.id===S.cur;})) S.cur="consent";
+  var st=vs[curIndex(vs)], h;
+  if(st.id==="consent") h=viewConsent(); else if(st.id==="envio") h=viewEnvio(st); else h=viewStep(st);
+  $("view").innerHTML=h;
+  renderRoute(); renderNav(); renderBanners();
+  if(st.id==="consent") drawTopo();
+  if(focusTop){window.scrollTo({top:0,behavior:"auto"});$("main").focus({preventScroll:true});}
+}
+function renderNav(){
+  var vs=visibleSteps(), i=curIndex(vs), st=vs[i];
+  $("navbar").hidden=S.saved;
+  $("btnPrev").disabled=i===0;
+  var req=allReq(), n=req.filter(answered).length, pct=req.length?Math.round(n/req.length*100):0;
+  $("progTxt").textContent=ended()?"":"Paso "+(i+1)+" de "+vs.length+" · "+pct+"% respondido";
+  $("progBar").style.width=pct+"%";
+  var nb=$("btnNext"); nb.disabled=false;
+  nb.textContent=st.id==="envio"?(ended()?"Finalizar":"Enviar respuestas"):(st.id==="consent"?"Comenzar →":"Siguiente →");
+}
+function renderBanners(){
+  var b=$("banners"); b.innerHTML="";
+  var raw=renderBanners.draft;
+  if(raw&&S.cur==="consent"&&!S.saved){
+    b.innerHTML='<div class="banner"><span>Tiene una encuesta empezada sin enviar. ¿Quiere continuarla?</span><span style="display:flex;gap:8px"><button class="btn sm primary" type="button" id="btnResume">Continuar</button><button class="btn sm" type="button" id="btnDiscard">Empezar de nuevo</button></span></div>';
+  }
+}
+
+/* ---------- navegación ---------- */
+function go(id){ if(S.saved||!S.visited[id]) return; S.cur=id; persist(); render(true); }
+function next(){
+  var vs=visibleSteps(), i=curIndex(vs), st=vs[i];
+  if(st.id==="envio"){
+    if(!ended()){ var falt=allReq().filter(function(id){return !answered(id);});
+      if(falt.length){ for(var j=0;j<vs.length;j++){ if(reqIds(vs[j]).indexOf(falt[0])>-1){ S.tried[vs[j].id]=true; S.cur=vs[j].id; render(true); toast("Faltan responder "+falt.length+" preguntas"); var el=$("it-"+falt[0]); if(el) el.scrollIntoView({block:"center"}); return; } } } }
+    save(); return;
+  }
+  var miss=reqIds(st).filter(function(id){return !answered(id);});
+  if(miss.length){
+    S.tried[st.id]=true; render(false);
+    var el=$("it-"+miss[0]); if(el){el.scrollIntoView({behavior:"smooth",block:"center"}); if(el.classList.contains("item")) el.focus({preventScroll:true});}
+    toast(miss.length===1?"Falta responder 1 pregunta":"Faltan responder "+miss.length+" preguntas");
+    return;
+  }
+  if(st.id==="consent"&&S.R.Consentimiento==="Sí"&&!S.started) S.started=Date.now();
+  vs=visibleSteps(); i=curIndex(vs);
+  var nx=vs[Math.min(i+1,vs.length-1)];
+  S.visited[nx.id]=true; S.cur=nx.id; persist(); render(true);
+}
+function prev(){var vs=visibleSteps(), i=curIndex(vs); if(i>0){S.cur=vs[i-1].id; persist(); render(true);}}
+
+/* ---------- respuestas ---------- */
+function pickLikert(item,v){
+  var id=item.getAttribute("data-id");
+  if(v==="NS"&&item.getAttribute("data-ns")!=="1") return false;
+  S.R[id]=(S.R[id]===v?"":v); persist();
+  item.querySelectorAll(".opt").forEach(function(o){o.setAttribute("aria-checked",String(o.getAttribute("data-v")===String(S.R[id])));});
+  item.classList.remove("missing");
+  var blk=item.closest(".block"); if(blk){var its=blk.querySelectorAll(".item");var n=0;its.forEach(function(x){if(answered(x.getAttribute("data-id")))n++;});blk.querySelector(".cnt").textContent=n+" / "+its.length;}
+  renderRoute(); renderNav(); return true;
+}
+function focusNextItem(item){
+  var all=Array.prototype.slice.call(document.querySelectorAll(".item"));
+  var nx=all[all.indexOf(item)+1];
+  if(nx){nx.focus({preventScroll:true});nx.scrollIntoView({behavior:"smooth",block:"center"});}
+}
+var STRUCT={Consentimiento:1,F1:1,F2:1,F3:1,B0:1,T8:1};
+document.addEventListener("click",function(e){
+  var t=e.target.closest("button"); if(!t) return;
+  if(t.hasAttribute("data-go")){go(t.getAttribute("data-go"));return;}
+  if(t.classList.contains("opt")){
+    var item=t.closest(".item"); var v=t.getAttribute("data-v"); v=(v==="NS")?"NS":+v;
+    if(pickLikert(item,v)&&S.R[item.getAttribute("data-id")]!=="") setTimeout(function(){focusNextItem(item);},160);
+    return;
+  }
+  if(t.classList.contains("choice")){
+    var f=t.getAttribute("data-f"), val=t.getAttribute("data-v");
+    if(t.getAttribute("data-multi")){
+      var excl=t.getAttribute("data-excl"), cur=arr(S.R[f]).slice();
+      if(val===excl) cur=cur.indexOf(val)>-1?[]:[val];
+      else { cur=cur.filter(function(x){return x!==excl;}); var k=cur.indexOf(val); if(k>-1) cur.splice(k,1); else cur.push(val); }
+      S.R[f]=cur;
+    } else S.R[f]=val;
+    if(f==="F1"){ S.R.F2=arr(S.R.F2).filter(function(x){return x!==val;}); }
+    if(f==="F2"&&f2list().indexOf(S.R.F3)<0) S.R.F3="";
+    // si cambia algo que define el recorrido, los pasos siguientes se vuelven a habilitar de a uno
+    if(STRUCT[f]){ var vs=visibleSteps(), i=curIndex(vs); S.visited={}; vs.slice(0,i+1).forEach(function(s){S.visited[s.id]=true;}); }
+    persist();
+    if(STRUCT[f]||f==="P4"||f==="T2"){ var y=window.scrollY; render(false); window.scrollTo(0,y); }
+    else {
+      t.parentNode.querySelectorAll(".choice").forEach(function(c){c.setAttribute("aria-checked",String(c.getAttribute("data-v")===val));});
+      var fld=t.closest(".field"); if(fld) fld.classList.remove("missing");
+      renderRoute(); renderNav();
+    }
+    return;
+  }
+  if(t.id==="btnNext"){next();return;}
+  if(t.id==="btnPrev"){prev();return;}
+  if(t.id==="btnResume"){S=renderBanners.draft;renderBanners.draft=null;render(true);return;}
+  if(t.id==="btnDiscard"){store(DRAFT_KEY,null);renderBanners.draft=null;renderBanners();return;}
+});
+document.addEventListener("input",function(e){
+  var f=e.target.getAttribute&&e.target.getAttribute("data-f"); if(!f) return;
+  S.R[f]=e.target.value; persist();
+  var fld=e.target.closest(".field"); if(fld&&e.target.value.trim()) fld.classList.remove("missing");
+  clearTimeout(e.target._t);e.target._t=setTimeout(function(){renderRoute();renderNav();},200);
+});
+document.addEventListener("keydown",function(e){
+  var item=e.target.closest&&e.target.closest(".item"); if(!item) return;
+  var k=e.key;
+  if(/^[1-5]$/.test(k)){e.preventDefault(); if(pickLikert(item,+k)) setTimeout(function(){focusNextItem(item);},120);}
+  else if(k==="n"||k==="N"){e.preventDefault(); if(pickLikert(item,"NS")) setTimeout(function(){focusNextItem(item);},120);}
+});
+
+/* ---------- envío: solo lo que corresponde al recorrido de la persona ---------- */
+function payload(){
+  var r={ID_Respuesta:S.id, Estado:"", Perfil:perfil(), Consentimiento:S.R.Consentimiento,
+         Duracion_min:S.started?Math.max(1,Math.round((Date.now()-S.started)/60000)):""};
+  if(S.R.Consentimiento==="No"){ r.Estado="No acepta"; return r; }
+  r.F1=S.R.F1||""; if(S.R.F1==="Otra ciudad") r.F1_otra=S.R.F1_otra||"";
+  if(residente()) r.F1a=S.R.F1a||"";
+  var f2=arr(S.R.F2); r.F2=f2.join("; ");
+  Q.f2cols.forEach(function(c,i){r[c]=f2.indexOf(DEST[i])>-1?1:0;});
+  if(f2list().length>1) r.F3=S.R.F3||"";
+  r.Ciudad_evaluada=residente()?S.R.F1:""; r.Destino_evaluado=destino()||"";
+  if(fuera()){ r.Estado="Fuera del estudio"; return r; }
+  visibleSteps().forEach(function(st){ if(!st.data||st.data.section==="F") return;
+    st.data.blocks.forEach(function(b){
+      if(b.type==="fields") visFields(b).forEach(function(f){
+        if(f.id==="E3") return;
+        if(f.id==="T8"){ var t=t8(); r.T8=t.join("; "); Q.t8.cols.forEach(function(c,i){r[c]=t.indexOf(Q.t8.opciones[i])>-1?1:0;}); return; }
+        r[f.id]=S.R[f.id]||"";
+        if(f.other&&/^Otr/.test(S.R[f.id]||"")) r[f.other]=S.R[f.other]||"";
+      });
+      else if(ok(b.when)) b.items.forEach(function(it){r[it.id]=S.R[it.id];});
+    });
+  });
+  r.Estado=allReq().every(answered)?"Completa":"Incompleta";
+  var mail=(S.R.E3||"").trim(); if(mail) r._email=mail;
+  return r;
+}
+window.__siarPayload=payload;
+function save(){
+  var nb=$("btnNext"); nb.disabled=true; nb.innerHTML='<span class="spin"></span> Enviando…';
+  var done=function(){S.saved=true;store(DRAFT_KEY,null);render(true);};
+  var fail=function(){nb.disabled=false;nb.textContent="Reintentar envío";
+    $("banners").innerHTML='<div class="banner"><span><b>No se pudieron enviar las respuestas.</b> Revise su conexión a internet y toque «Reintentar envío». Sus respuestas siguen guardadas en esta página.</span></div>';
+    window.scrollTo({top:0,behavior:"smooth"});};
+  var p=payload();
+  if(GAS) google.script.run.withSuccessHandler(done).withFailureHandler(fail).guardarRespuesta(p);
+  else if(ENDPOINT){
+    var body=JSON.stringify(p), opts={method:"POST",body:body,headers:{"Content-Type":"text/plain;charset=utf-8"},credentials:"omit",redirect:"follow"};
+    fetch(ENDPOINT,opts).then(function(r){return r.json();}).then(function(j){ if(j&&j.ok) done(); else fail(); })
+      .catch(function(){
+        // si el navegador no deja leer la respuesta, se reenvía sin leerla (el servidor no duplica: usa el ID)
+        fetch(ENDPOINT,{method:"POST",body:body,mode:"no-cors",credentials:"omit"}).then(done).catch(fail);
+      });
+  }
+  else setTimeout(done,700);
+}
+
+/* ---------- curvas de nivel decorativas ---------- */
+function drawTopo(){
+  var c=$("topo"); if(!c) return; var r=c.getBoundingClientRect(); var dpr=window.devicePixelRatio||1;
+  c.width=r.width*dpr; c.height=r.height*dpr; var x=c.getContext("2d"); x.scale(dpr,dpr);
+  x.strokeStyle="#ffffff"; x.lineWidth=1;
+  var cx=r.width*.86, cy=r.height*.2;
+  for(var k=1;k<16;k++){ x.beginPath();
+    for(var a=0;a<=Math.PI*2+.05;a+=.05){ var rr=k*16*(1+.18*Math.sin(a*3+k*.4)+.08*Math.cos(a*5-k*.3));
+      var px=cx+Math.cos(a)*rr*1.35, py=cy+Math.sin(a)*rr; if(a===0) x.moveTo(px,py); else x.lineTo(px,py); }
+    x.stroke(); }
+}
+
+/* ---------- arranque ---------- */
+S=fresh();
+try{var raw=store(DRAFT_KEY); if(raw){var d=JSON.parse(raw); if(d&&d.R&&!d.saved&&d.cur!=="consent") renderBanners.draft=d;}}catch(e){}
+render(false);
+})();
+</script>
+</body>
+</html>
